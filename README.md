@@ -18,7 +18,8 @@ approval lifecycle, the timeline, the reset, and the Policy Test Bench — all o
 | Strands agent proposing tool calls | **Not implemented** |
 | Native Strands interrupt / resume | **Not implemented** |
 | Durable approval storage across restart | **Not implemented** |
-| Control-room UI that runs scenarios | **Implemented** — 11 browser tests |
+| Product site (coded, not Framer) | **Implemented** |
+| Control-room UI that runs scenarios | **Implemented** — 13 browser tests |
 | SAM / LocalStack, OpenSearch | **Not implemented** |
 
 Two consequences worth stating plainly:
@@ -559,7 +560,7 @@ The goal is to make agent authorization understandable rather than invisible mid
 agent-gate/
 │
 ├── frontend/
-│   ├── src/                 # React shell, styles and health client tests
+│   ├── src/                 # Product site (Landing) and control room, hash-routed
 │   ├── tests/               # Browser smoke checks
 │   ├── package.json
 │   └── package-lock.json
@@ -700,7 +701,8 @@ npm.cmd ci
 npm.cmd run dev
 ```
 
-Open [the control room](http://127.0.0.1:5173). The API health endpoint is
+Open [the site](http://127.0.0.1:5173); the control room is at
+[`/#/control`](http://127.0.0.1:5173/#/control). The API health endpoint is
 [localhost:8000/health](http://127.0.0.1:8000/health); API documentation is at
 [localhost:8000/docs](http://127.0.0.1:8000/docs). Stop either server with Ctrl+C.
 

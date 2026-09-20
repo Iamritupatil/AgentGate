@@ -30,10 +30,14 @@ Current phase: The three demo scenarios run end to end through the UI. Review Ga
 - Everything from Volumes I: FastAPI factory, typed `/health`, immutable domain models,
   deterministic seeds for ORD-1001/1002/1003, `InMemoryStore` with atomic single-refund
   semantics, and the five business tools.
-- **The control room runs the demo.** Scenario A/B/C buttons propose real tool calls,
-  the timeline renders live events with actor labels, the approval card approves or
-  denies one exact action, Reset restores the demo, and the Policy Test Bench reports
-  5/5 from real evaluations. 11 browser tests drive these exact clicks.
+- **The control room runs the demo.** Scenario A/B/C propose real tool calls; the
+  action stream renders live events with actor trails (OPERATOR/CEDAR/HUMAN/TOOL), the
+  decision column approves or denies one exact action, Reset restores the demo, and the
+  Policy Test Bench reports 5/5 from real evaluations.
+- **The product site is coded, not Framer.** `/` is the landing page — hero, problem,
+  the three scenarios, how it works, policy limits and footer — and `#/control` is the
+  live demo. The sky and clouds are CSS, so the page carries no image assets and works
+  offline. 13 browser tests cover both routes, including phone width.
 
 ## Broken or Missing
 
@@ -57,9 +61,10 @@ Current phase: The three demo scenarios run end to end through the UI. Review Ga
   result: PASS - 178 tests. Breakdown: 54 policy, 47 gateway/API, 45 business tools,
   23 storage/model, 9 health/config.
 - command: `$env:E2E_BASE_URL='http://127.0.0.1:4173'; npm.cmd run test:e2e`
-  result: PASS - 11 browser checks against the live API. Covers all three scenarios
-  through the UI, approve and deny, OPERATOR-not-AGENT attribution, the 5/5 bench with
-  zero business mutation, reset, offline handling and the mobile approval card.
+  result: PASS - 13 browser checks against the live API. Covers the landing page and
+  its route into the demo, all three scenarios through the UI, approve and deny,
+  OPERATOR-not-AGENT attribution, the 5/5 bench with zero business mutation, reset,
+  offline handling, and both pages at 390px without horizontal scroll.
 - command: `.\backend\.venv\Scripts\python.exe -m pytest backend/tests/policy`
   result: PASS - 54 checks covering the full boundary matrix, malformed and hostile
   arguments, unknown actions, startup validation failures, engine-error fail-closed

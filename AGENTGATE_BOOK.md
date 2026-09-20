@@ -1099,3 +1099,75 @@ matched Scenario C's card as well as the approval button.
   the screen: the audience sees the arguments Cedar is about to judge.
 
 ---
+
+<a id="site-build-evidence"></a>
+
+## Volume V — Product site build evidence (2026-09-20)
+
+### Goal
+
+Replace the Framer-hosted landing page with real code in this repository, and bring the
+control room onto the same design language, so the site and the demo look like one
+product rather than a marketing page next to a prototype.
+
+### Design
+
+The Framer project's Control Room panel was the reference. Its language: a black console
+bar, three columns, square corners, uppercase micro-labels with wide tracking, numbered
+navigation, monospace for tool names and codes, and three state colours carried
+everywhere — green allow, amber approval, red deny.
+
+The control room was rebuilt to that spec: black bar, 216px rail with numbered sections
+and the scenario picker, a centre column with a tally row and a tool-call table, a black
+policy-evaluation block, and a right-hand decision column that holds either the pending
+approval or the authority path.
+
+The landing page is a React component in this repo, not an export. The sky, clouds and
+grid are CSS, so the page carries no image assets and renders offline — worth doing for a
+demo machine whose network cannot be relied on.
+
+Routing is hash-based (`/` site, `#/control` demo) because the frontend is a static
+bundle; a path router would need server rewrites that the preview server and most static
+hosts do not give for free.
+
+### Implementation
+
+- `frontend/src/Landing.tsx` — nav, hero, problem, scenarios, how-it-works, policy
+  limits, closing, footer, and a `ConsolePanel` mockup reused in two sections.
+- `frontend/src/landing.css`.
+- `frontend/src/ControlRoom.tsx` — the former `App.tsx`, rebuilt to the console design.
+- `frontend/src/styles.css` — rewritten for the new layout.
+- `frontend/src/main.tsx` — hash router.
+
+### Failures encountered
+
+**Every dark button rendered black-on-black.** `.site a { color: inherit }` is one class
+plus one element, which outranks `.cta-dark`, so the white text lost. Fixed by scoping
+the button rules to `.site .cta-dark`. Worth remembering: a base `a { color: inherit }`
+rule quietly outranks every single-class button style under it.
+
+**The actor labels nearly disappeared in the redesign.** The reference panel has no
+timeline, and the first rebuild dropped the AGENT/CEDAR/HUMAN/TOOL chips with it — which
+the Definition of Done requires and which is the clearest evidence that a human sat
+between Cedar and the tool. They came back as a compact trail under each table row, which
+suits the design better than the old timeline did.
+
+Two test failures were strict-mode violations rather than product bugs: `.actor-tool`
+matches every executed row, and `:has(code:text-is(...))` did not resolve inside a plain
+selector string, so the ledger helper moved to Playwright's `filter({ hasText })`.
+
+### Tests
+
+13 browser checks, all passing against the live API: the landing page and its route into
+the demo, all three scenarios, approve and deny, the actor trail reaching HUMAN and TOOL,
+OPERATOR-not-AGENT attribution, the 5/5 bench with zero mutation, reset, offline
+handling, and both routes at 390px with no horizontal scroll.
+
+### Lessons
+
+- Rebuilding the dashboard against the marketing mockup improved the dashboard. The
+  tally row and the decision column say more, in less space, than the panel grid did.
+- Drawing the sky in CSS took about as long as wiring an image pipeline would have, and
+  removed a whole class of demo-day failure.
+
+---

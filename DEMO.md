@@ -13,8 +13,19 @@ cd frontend
 npm.cmd run dev
 ```
 
-Open <http://127.0.0.1:5173>. Confirm the top right says **API connected**.
-Click **Reset** once so the timeline is empty and all three orders read *untouched*.
+Open <http://127.0.0.1:5173>. That is the product site.
+
+Click **Explore the demo** (or go straight to <http://127.0.0.1:5173/#/control>) to reach
+the control room. Confirm the black bar top right says **POLICY ENGINE CONNECTED**, then
+click **Reset** once so the stream is empty and all three orders read *untouched*.
+
+---
+
+## Optional 20-second opener on the site
+
+If you have the time, scroll the landing page first: the hero, then **Make authority
+explicit** with the ₹2,000 and ₹10,000 cards. It sets the limits up before anyone sees
+them enforced. Then click **Explore the demo**.
 
 ---
 
@@ -27,15 +38,15 @@ Click **Reset** once so the timeline is empty and all three orders read *untouch
 
 ## Scenario A — ALLOW (25 seconds)
 
-1. Click **Scenario A** (₹799).
-2. Point at the `PROPOSES` row: `lookup_order`, then `refund_order(amount=₹799)`.
-3. Click **Run scenario**.
+1. Click **Scenario A** (₹799) in the left rail.
+2. Click **Run scenario**.
 
 **Say:** "₹799 is inside the agent's own limit, so Cedar allows it and it just happens."
 
-**Point at:** the timeline — `OPERATOR → CEDAR: ALLOW → TOOL: Executed` — and the
-reason code `EXECUTE_PERMITTED · allow_refund_within_agent_limit`. Then the state strip
-at the bottom: **ORD-1001 refunded ₹799**.
+**Point at:** the **ALLOWED 01** tally, the green `ALLOW` pill on the `refund_order` row,
+and the actor trail under it: `OPERATOR → CEDAR → TOOL`. Then the black **POLICY
+EVALUATION** block showing `can_execute true`, and **BUSINESS STATE** at the bottom:
+**ORD-1001 refunded ₹799**.
 
 > The green row is the only place a refund is ever claimed, and it is written after the
 > store returns a receipt.
@@ -51,10 +62,11 @@ at the bottom: **ORD-1001 refunded ₹799**.
 
 **Point at, in this order:**
 
-- The **approval card** on the right: the exact tool, the exact arguments, and the
-  digest it is bound to.
-- The state strip: **ORD-1002 is still untouched.** Nothing has moved.
-- The timeline: `CEDAR: REQUIRE_APPROVAL` with `allow_refund_approval_request`.
+- The right column: **HUMAN DECISION REQUIRED**, ₹8,499, the exact call
+  `refund_order / ORD-1002`, and **Execution status: PAUSED**.
+- **BUSINESS STATE**: ORD-1002 is still **untouched**. Nothing has moved.
+- The black block: `can_execute false`, `can_request_approval true`. That is the
+  two-question composition, on screen.
 
 > Cedar itself only answers allow or deny. The third state is two policy questions:
 > may this execute, and failing that, may a human be asked? Both answers come from
@@ -62,8 +74,8 @@ at the bottom: **ORD-1001 refunded ₹799**.
 
 3. Click **Approve**.
 
-**Point at:** `HUMAN approved` landing on the timeline *before* `TOOL: Executed`, and
-ORD-1002 flipping to **refunded ₹8,499**.
+**Point at:** the actor trail on that row growing to `OPERATOR → CEDAR → HUMAN → TOOL`,
+and ORD-1002 flipping to **refunded ₹8,499**.
 
 > The approval sends an id and a version. It never sends the arguments — otherwise the
 > person approving wouldn't be approving anything in particular.
@@ -83,10 +95,12 @@ refund, one receipt.
 
 **Point at:**
 
-- `Blocked refund_order` — `NO_MATCHING_PERMIT`. No policy permits it, and there is no
-  approval path either: ₹25,000 is above the ceiling a human may authorize.
-- `Blocked export_customers` — `EXPLICIT_FORBID · forbid_customer_export`. A deliberate
-  forbid, so the audit trail names the security intent rather than reporting a gap.
+- Two red `DENY` pills and **DENIED 02**.
+- The black block: `EXPLICIT_FORBID · forbid_customer_export`. A deliberate forbid, so
+  the audit trail names the security intent rather than reporting a gap. The refund's
+  own reason is `NO_MATCHING_PERMIT` — no permit, and no approval path either, because
+  ₹25,000 is above the ceiling a human may authorize.
+- Every actor trail stops at `CEDAR`. Nothing reached a tool.
 - All three orders: **untouched**.
 
 > A forbidden action never becomes a question someone could say yes to by mistake.
@@ -95,7 +109,7 @@ refund, one receipt.
 
 ## Policy Test Bench (20 seconds)
 
-Click **Run 5 policy checks** in the bottom right.
+Click **04 Policy test bench** in the left rail, then **Run 5 policy checks**.
 
 **Say:** "Five cases through the real engine. Nothing is refunded to prove a refund is
 allowed — this evaluates policy and touches no business state."
@@ -138,6 +152,6 @@ Strands resume are the next two pieces.
 | --- | --- |
 | Backend tests | 178 |
 | Policy checks | 54 |
-| Browser tests against the live API | 11 |
+| Browser tests against the live API | 13 |
 | Agent limit / human ceiling | ₹2,000 / ₹10,000 |
 | Concurrent approvals that produced one refund | 8 |
