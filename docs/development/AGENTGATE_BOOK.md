@@ -145,6 +145,26 @@ Status: Not started. See `V8-P13`.
 
 Status: Not started. See `V8-P14`.
 
+## Complete hackathon demo extension - 2026-09-20
+
+### Goal
+
+Demonstrate AgentGate as a general Cedar-backed authorization layer while preserving the original refund scenarios, Policy Test Bench, reset, and approval safety.
+
+### Implementation
+
+Added `POST /api/gate/evaluate`, operational Cedar action coverage, and role-specific tests. Added JSON-backed Policy Studio drafts with generated Cedar validation and explicit activation. Added optional OpenAI-compatible natural-language drafting with a local fallback; drafts never activate automatically. Added Playground and Integrate views, a stdio MCP adapter delegating to the same engine, and Nginx/systemd/EC2 deployment documentation.
+
+### Evidence and limitations
+
+Generic boundaries, Studio activation/narrowing, draft non-activation, and MCP-vs-HTTP parity are covered by backend tests. Existing scenarios remain green, and frontend typecheck/unit/build pass. The AI provider is optional and configured only in backend environment variables. Approval and policy state remain single-process demo state. Public EC2 verification is pending because no instance or public IP is available in this workspace.
+
+### Reviewer release check - 2026-09-20
+
+The reviewer matrix passed health, OpenAPI, all generic role and threshold boundaries, unknown principal/action default-deny, legacy scenarios A/B/C, approval replay, reset, Policy Studio invalid/create/inspect/activate/evaluate, AI draft non-activation, and MCP parity. The complete backend suite passed 196 tests; frontend unit tests, typecheck, production build, and 14 browser tests passed.
+
+The reported browser `502` was reproduced only when FastAPI was not running on `127.0.0.1:8000`; the frontend proxy returned `200` immediately after the backend was started. This is an operational startup condition, not an evaluator defect. Public release remains blocked until the EC2 systemd/Nginx deployment is executed and verified with the public IP.
+
 ---
 
 ### Research Note - Cedar local authorization for AgentGate
@@ -538,7 +558,7 @@ If the pinned native interrupt cannot be restored reliably across HTTP requests,
 
 ### Goal
 
-Implement the first scaffold increment from `02_CODEX_COMMANDS.md`: FastAPI,
+Implement the first scaffold increment from `CODEX_COMMANDS.md`: FastAPI,
 `/health`, centralized settings, backend tests, React/Vite/TypeScript, a minimal
 control-room shell, environment examples and dependency files.
 

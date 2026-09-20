@@ -13,7 +13,7 @@ You do not fake success.
 ## Read before coding
 
 1. `README.md`
-2. `docs/01_VISION_PLAN_ARCHITECTURE.md`
+2. `docs/architecture/VISION_PLAN_ARCHITECTURE.md`
 3. `TODO.md`
 4. `STATUS.md`
 5. relevant `AGENTGATE_BOOK.md`

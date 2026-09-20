@@ -14,13 +14,14 @@ from pathlib import Path
 
 from cedarpy import Decision, Entities, PolicySet, Schema, is_authorized, validate_policies
 
-from app.policy.arguments import TOOL_SPECS, InvalidArguments, ToolSpec, normalize
+from app.policy.arguments import GENERIC_ACTION_SPECS, TOOL_SPECS, InvalidArguments, ToolSpec, normalize
 from app.policy.contract import (
     AuthorizationRequest,
     AuthorizationResult,
     GateDecision,
     ReasonCode,
 )
+from app.policy.studio import PolicyDefinition, generate_cedar
 
 SCHEMA_FILE = "agentgate.cedarschema"
 EXECUTE_FILE = "execute.cedar"
@@ -45,7 +46,7 @@ class _CedarOutcome:
 class CedarPolicyEngine:
     """Implements `PolicyEngine`. Construct once at startup and share it."""
 
-    def __init__(self, policy_dir: Path) -> None:
+    def __init__(self, policy_dir: Path, definitions: tuple[PolicyDefinition, ...] = ()) -> None:
         self._policy_dir = Path(policy_dir)
         schema_text = self._read(SCHEMA_FILE)
         execute_text = self._read(EXECUTE_FILE)
@@ -56,9 +57,11 @@ class CedarPolicyEngine:
             self._schema = Schema.from_str(schema_text)
         except Exception as error:
             raise PolicyConfigurationError(f"{SCHEMA_FILE} is not a valid Cedar schema: {error}") from error
+        self._schema_text = schema_text
 
-        self._execute = self._parse(execute_text, EXECUTE_FILE)
-        self._approval = self._parse(approval_text, APPROVAL_FILE)
+        self._base_execute_text = execute_text
+        self._base_approval_text = approval_text
+        self._set_dynamic_policies(definitions)
 
         # Validation is what makes a typo in an action name a startup failure
         # instead of a silent permanent DENY at demo time.
@@ -69,6 +72,47 @@ class CedarPolicyEngine:
             self._entities = Entities.from_json_str(entities_text, self._schema)
         except Exception as error:
             raise PolicyConfigurationError(f"{ENTITIES_FILE} is not a valid Cedar entity set: {error}") from error
+
+    def _compile(self, definitions: tuple[PolicyDefinition, ...]) -> tuple[PolicySet, PolicySet]:
+        """Render, parse and schema-validate a candidate policy set.
+
+        Nothing on `self` is touched here. This is what makes activation
+        atomic: a candidate that fails any check never becomes the set the
+        gate answers from, so a rejected policy can never govern a decision.
+        """
+        execute_additions: list[str] = []
+        approval_additions: list[str] = []
+        try:
+            for definition in definitions:
+                execute, approval = generate_cedar(definition)
+                if execute:
+                    execute_additions.append(execute)
+                if approval:
+                    approval_additions.append(approval)
+            execute_text = "\n\n".join(item for item in (self._base_execute_text, *execute_additions) if item)
+            approval_text = "\n\n".join(item for item in (self._base_approval_text, *approval_additions) if item)
+            execute_set = self._parse(execute_text, EXECUTE_FILE)
+            approval_set = self._parse(approval_text, APPROVAL_FILE)
+            self._validate(execute_text, EXECUTE_FILE, self._schema_text)
+            self._validate(approval_text, APPROVAL_FILE, self._schema_text)
+        except Exception as error:
+            if isinstance(error, PolicyConfigurationError):
+                raise
+            raise PolicyConfigurationError(f"Dynamic policy failed Cedar validation: {error}") from error
+        return execute_set, approval_set
+
+    def _set_dynamic_policies(self, definitions: tuple[PolicyDefinition, ...]) -> None:
+        execute_set, approval_set = self._compile(definitions)
+        # Reached only once every check above has passed.
+        self._execute = execute_set
+        self._approval = approval_set
+
+    def validate_definitions(self, definitions: tuple[PolicyDefinition, ...]) -> None:
+        """Prove a candidate policy set would activate, without activating it."""
+        self._compile(definitions)
+
+    def replace_dynamic_policies(self, definitions: tuple[PolicyDefinition, ...]) -> None:
+        self._set_dynamic_policies(definitions)
 
     def _read(self, name: str) -> str:
         path = self._policy_dir / name
@@ -93,7 +137,8 @@ class CedarPolicyEngine:
 
     def evaluate(self, request: AuthorizationRequest) -> AuthorizationResult:
         """Answer one proposed tool call. This method does not raise."""
-        spec = TOOL_SPECS.get(request.tool_name)
+        specs = {**TOOL_SPECS, **GENERIC_ACTION_SPECS} if request.generic else TOOL_SPECS
+        spec = specs.get(request.tool_name)
         if spec is None:
             return AuthorizationResult(GateDecision.DENY, ReasonCode.UNKNOWN_ACTION)
 
@@ -114,7 +159,9 @@ class CedarPolicyEngine:
 
         # Execution was refused. A tool with no approval path stops here, and
         # so does an explicit forbid: `export_customers` must never become a
-        # question we put to a human.
+        # question we put to a human. This holds for every forbid, including
+        # ones generated by Policy Studio — an explicit forbid always means
+        # DENY, never an escalation, with no exception carved out here.
         denial_reason = (
             ReasonCode.EXPLICIT_FORBID if execution.determining_policies else ReasonCode.NO_MATCHING_PERMIT
         )
@@ -170,5 +217,7 @@ class CedarPolicyEngine:
         return _CedarOutcome(response.decision is Decision.Allow, determining, errors)
 
 
-def load_policy_engine(policy_dir: Path) -> CedarPolicyEngine:
-    return CedarPolicyEngine(policy_dir)
+def load_policy_engine(
+    policy_dir: Path, definitions: tuple[PolicyDefinition, ...] = ()
+) -> CedarPolicyEngine:
+    return CedarPolicyEngine(policy_dir, definitions)

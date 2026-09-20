@@ -1,20 +1,28 @@
 // AgentGate authority model.
 //
 // Cedar answers only Allow or Deny. AgentGate's third state, REQUIRE_APPROVAL,
-// is composed from two requests: the real tool action, then the synthetic
-// `request_refund_approval` action. The synthetic action is declared here so a
+// is composed from two requests: the real action, then a synthetic
+// `request_*_approval` action. The synthetic actions are declared here so a
 // schema validation failure catches any drift between the two checks.
 //
 // Money is a Cedar `Long` in whole rupees. The application rejects booleans,
 // floats, strings and missing values before a request is ever constructed.
+//
+// The entity types below are the vocabulary of the whole service, not of the
+// refund demo. `Store::"demo"` is the seeded demo tenant; `Order`,
+// `Environment` and `Database` are the resources a generic caller names when
+// it asks `POST /api/gate/evaluate` a question.
 
 namespace AgentGate {
   entity Agent;
   entity Store;
+  entity Order;
+  entity Environment;
+  entity Database;
 
   action lookup_order appliesTo {
     principal: Agent,
-    resource: Store,
+    resource: [Store, Order],
     context: { input: { order_id: String } }
   };
 
@@ -26,7 +34,7 @@ namespace AgentGate {
 
   action refund_order appliesTo {
     principal: Agent,
-    resource: Store,
+    resource: [Store, Order],
     context: { input: { order_id: String, amount: Long } }
   };
 
@@ -34,7 +42,7 @@ namespace AgentGate {
   // refund may be escalated to a human.
   action request_refund_approval appliesTo {
     principal: Agent,
-    resource: Store,
+    resource: [Store, Order],
     context: { input: { order_id: String, amount: Long } }
   };
 
@@ -48,5 +56,34 @@ namespace AgentGate {
     principal: Agent,
     resource: Store,
     context: { input: {} }
+  };
+
+  // Operational actions. They carry no business tool behind them: AgentGate
+  // decides them and reports the decision, which is the whole point of a
+  // generic authorization service. `environment` is optional, so a policy
+  // that reads it must guard the read with `has`.
+  action read_logs appliesTo {
+    principal: Agent,
+    resource: Environment,
+    context: { input: { environment?: String } }
+  };
+
+  action deploy_production appliesTo {
+    principal: Agent,
+    resource: Environment,
+    context: { input: { environment?: String } }
+  };
+
+  // Synthetic, as above: an Allow here means "a human may be asked".
+  action request_deploy_approval appliesTo {
+    principal: Agent,
+    resource: Environment,
+    context: { input: { environment?: String } }
+  };
+
+  action delete_production_database appliesTo {
+    principal: Agent,
+    resource: Database,
+    context: { input: { environment?: String } }
   };
 }

@@ -1,8 +1,8 @@
 # Status
 
-Last updated: 2026-09-20T18:05:00+05:30
-Current volume: Volumes II and V built; parts of III and IV built
-Current phase: The three demo scenarios run end to end through the UI. Review Gate 1 not yet run.
+Last updated: 2026-09-20T21:00:00+05:30
+Current volume: Complete demo implementation in progress
+Current phase: Generic Cedar API, Policy Studio, AI drafts, Playground, MCP adapter, and EC2 artifacts are implemented; public deployment is pending.
 
 ## Working
 
@@ -38,6 +38,13 @@ Current phase: The three demo scenarios run end to end through the UI. Review Ga
   the three scenarios, how it works, policy limits and footer — and `#/control` is the
   live demo. The sky and clouds are CSS, so the page carries no image assets and works
   offline. 13 browser tests cover both routes, including phone width.
+
+## Complete Demo Extension
+
+- Generic `POST /api/gate/evaluate` uses the same Cedar engine for support, finance, deployment, intern, unknown-principal, and unknown-action requests.
+- Policy Studio persists inactive drafts and activates only after Cedar validation and an explicit human action.
+- AI drafts, Playground, Integrate, isolated MCP, and EC2 deployment artifacts are implemented.
+- No public EC2 deployment has been executed in this workspace; an AWS instance/IP is required.
 
 ## Broken or Missing
 
@@ -84,6 +91,10 @@ Current phase: The three demo scenarios run end to end through the UI. Review Ga
   `phase=foundation` payload.
 - command: `npm.cmd run build` (frontend)
   result: PASS - TypeScript check and Vite production bundle.
+- command: `python -m pytest backend/tests`
+  result: PASS - complete backend suite including generic API, Policy Studio, AI draft, and MCP parity.
+- command: `npm.cmd run typecheck`, `npm.cmd test`, `npm.cmd run build`
+  result: PASS - frontend workbench typecheck, unit tests, and production build.
 
 
 ## Open P0/P1 Defects
@@ -134,7 +145,7 @@ Current phase: The three demo scenarios run end to end through the UI. Review Ga
 
 ## Next Action
 
-The demo is submittable: rehearse it twice from a clean reset using `DEMO.md`.
+Run the complete local validation, then deploy one EC2 instance with [DEPLOY_EC2.md](../../DEPLOY_EC2.md) and verify the public URL before claiming live readiness.
 
 After submission, Review Gate 1 over Volumes I and II. The Reviewer should independently
 re-run the policy matrix, the empty-policy check and the boundary mutation check, then
@@ -144,15 +155,18 @@ introducing a second execution path.
 
 ## Latest Review
 
-Gate: Not started
-Verdict: Not reviewed
-Tests executed: Builder verification only - 178 backend checks, 11 frontend unit checks,
-11 browser checks against the live API, typecheck and production build, plus a live HTTP
-run of all three scenarios. No independent reviewer gate yet.
+Gate: RELEASE_GATE
+Verdict: RELEASE_BLOCKED for public readiness; local review PASS
+Tests executed: Reviewer-style live HTTP matrix across health, OpenAPI, generic role and
+boundary decisions, legacy A/B/C, approval replay, reset, Policy Studio, AI draft, and
+MCP parity. Backend 196 tests, frontend 11 unit tests, typecheck/build, and 14 Playwright
+browser tests all pass. Vite proxy `/api/health` returned 200 with FastAPI running.
 P0: 0
 P1: 0
 P2: 0
-Next required action: Review Gate 1 covering foundation and authority.
+Operational finding: the reported 502 is reproducible when no process is listening on
+127.0.0.1:8000. The systemd deployment artifact is required to keep FastAPI running.
+Next required action: deploy to a user-provided EC2 instance and verify the public URL.
 
 ## Latest Commit
 

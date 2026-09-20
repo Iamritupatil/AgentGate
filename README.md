@@ -32,8 +32,8 @@ Two consequences worth stating plainly:
   epoch. When Strands lands, the Strands tool-use ID and interrupt ID must be added to
   that envelope.
 
-Run the demo with [DEMO.md](DEMO.md). See [STATUS.md](STATUS.md) for verification
-evidence and [TODO.md](TODO.md) for what is next. Sections below marked *planned* or *target* describe work that does not exist yet.
+Run the demo with [DEMO.md](docs/DEMO.md). See [STATUS.md](docs/development/STATUS.md) for verification
+evidence and [TODO.md](docs/development/TODO.md) for what is next. Sections below marked *planned* or *target* describe work that does not exist yet.
 
 ## The authority gate — Phase 3
 
@@ -584,16 +584,26 @@ agent-gate/
 │   ├── pyproject.toml
 │   └── uv.lock
 │
-├── 01_VISION_PLAN_ARCHITECTURE.md
-├── 02_CODEX_COMMANDS.md
-├── 03_BUILDER_ENGINEER_AGENT.md
-├── 04_RESEARCHER_AGENT(1).md
-├── 05_REVIEWER_AGENT(1).md
-├── DEMO.md                  # The three-minute demo script
-├── TODO.md
-├── STATUS.md
-├── AGENTGATE_BOOK.md
-└── README.md
+├── deployment/              # systemd unit and nginx site for the EC2 host
+│
+├── docs/
+│   ├── architecture/
+│   │   └── VISION_PLAN_ARCHITECTURE.md
+│   ├── development/
+│   │   ├── CODEX_COMMANDS.md
+│   │   ├── BUILDER_ENGINEER_AGENT.md
+│   │   ├── RESEARCHER_AGENT.md
+│   │   ├── REVIEWER_AGENT.md
+│   │   ├── AGENTGATE_BOOK.md
+│   │   ├── STATUS.md
+│   │   └── TODO.md
+│   └── DEMO.md              # The three-minute demo script
+│
+├── README.md
+├── DEPLOY_EC2.md            # One-instance EC2 deployment
+├── MCP.md                   # The gate as an MCP server
+├── .gitignore
+└── LICENSE
 ```
 
 ---
@@ -706,7 +716,7 @@ Open [the site](http://127.0.0.1:5173); the control room is at
 [localhost:8000/health](http://127.0.0.1:8000/health); API documentation is at
 [localhost:8000/docs](http://127.0.0.1:8000/docs). Stop either server with Ctrl+C.
 
-Pick a scenario and press **Run scenario**. [DEMO.md](DEMO.md) is the three-minute
+Pick a scenario and press **Run scenario**. [DEMO.md](docs/DEMO.md) is the three-minute
 walkthrough. The same gate is reachable directly from `/docs` if you prefer:
 
 ```powershell

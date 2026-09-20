@@ -27,6 +27,7 @@ class ReasonCode(str, Enum):
     EXPLICIT_FORBID = "EXPLICIT_FORBID"
     INVALID_ARGUMENTS = "INVALID_ARGUMENTS"
     UNKNOWN_ACTION = "UNKNOWN_ACTION"
+    UNKNOWN_PRINCIPAL_TYPE = "UNKNOWN_PRINCIPAL_TYPE"
     POLICY_ENGINE_ERROR = "POLICY_ENGINE_ERROR"
 
 
@@ -37,6 +38,7 @@ class AuthorizationRequest:
     resource_type: str
     resource_id: str
     arguments: Mapping[str, object]
+    generic: bool = False
 
 
 @dataclass(frozen=True, slots=True)

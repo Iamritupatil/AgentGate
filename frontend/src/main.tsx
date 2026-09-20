@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import ControlRoom from './ControlRoom'
 import Landing from './Landing'
+import './theme.css'
 import './landing.css'
 import './styles.css'
 

@@ -14,6 +14,7 @@ import {
   type Pending,
   type TimelineEvent,
 } from './api'
+import { Integrate, Playground, PolicyStudio } from './Workbench'
 
 /** Each scenario is a fixed sequence of proposed tool calls. No model picks
  *  these; the control room proposes them and Cedar decides each one. */
@@ -170,7 +171,7 @@ const APPROVAL_LIMIT = 10000
 
 export default function ControlRoom() {
   const [selected, setSelected] = useState<string>('B')
-  const [view, setView] = useState<'stream' | 'bench'>('stream')
+  const [view, setView] = useState<'stream' | 'bench' | 'studio' | 'playground' | 'integrate'>('stream')
   const [timeline, setTimeline] = useState<TimelineEvent[]>([])
   const [pending, setPending] = useState<Pending[]>([])
   const [state, setState] = useState<BusinessState | null>(null)
@@ -263,10 +264,12 @@ export default function ControlRoom() {
             <button className={`rail-nav ${waiting ? 'flagged' : ''}`} onClick={() => setView('stream')}>
               <span className="rail-num">02</span>Approvals{pending.length > 0 && <span className="rail-badge">{pending.length}</span>}
             </button>
-            <button className="rail-nav" disabled><span className="rail-num">03</span>Cedar policies</button>
+            <button className={`rail-nav ${view === 'studio' ? 'active' : ''}`} onClick={() => setView('studio')}><span className="rail-num">03</span>Policy Studio</button>
             <button className={`rail-nav ${view === 'bench' ? 'active' : ''}`} onClick={() => setView('bench')} aria-current={view === 'bench' ? 'page' : undefined}>
               <span className="rail-num">04</span>Policy test bench
             </button>
+            <button className={`rail-nav ${view === 'playground' ? 'active' : ''}`} onClick={() => setView('playground')}><span className="rail-num">05</span>Playground</button>
+            <button className={`rail-nav ${view === 'integrate' ? 'active' : ''}`} onClick={() => setView('integrate')}><span className="rail-num">06</span>Integrate</button>
           </nav>
 
           <div className="rail-block rail-scenarios">
@@ -384,7 +387,7 @@ export default function ControlRoom() {
                 </div>
               )}
             </>
-          ) : (
+          ) : view === 'bench' ? (
             <>
               <div className="stream-head">
                 <div>
@@ -418,7 +421,7 @@ export default function ControlRoom() {
                 </>
               )}
             </>
-          )}
+          ) : view === 'studio' ? <PolicyStudio /> : view === 'playground' ? <Playground /> : <Integrate />}
         </main>
 
         <aside className="decision">

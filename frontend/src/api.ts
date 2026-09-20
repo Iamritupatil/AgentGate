@@ -58,6 +58,43 @@ export interface BenchResult {
   cases: BenchCase[]
 }
 
+export interface EvaluationRequest {
+  principal: { type: string; id: string }
+  action: string
+  resource: { type: string; id: string }
+  context: Record<string, unknown>
+}
+
+export interface EvaluationResponse {
+  decision: Decision
+  principal: string
+  action: string
+  resource: string
+  reason: string
+  reason_code: string
+  matched_policy: string | null
+}
+
+export interface PolicyDefinition {
+  id: string
+  name: string
+  principal_type: string
+  principal_id: string
+  action: string
+  resource_type: string
+  decision: Decision
+  context_field: string | null
+  allow_threshold: number | null
+  approval_threshold: number | null
+  active: boolean
+}
+
+export interface PolicyDraft {
+  draft: Omit<PolicyDefinition, 'id' | 'active'> & { id: string; active: boolean }
+  cedar_preview: string
+  active: boolean
+}
+
 export interface Order {
   order_id: string
   customer_id: string
@@ -138,3 +175,12 @@ export const fetchTimeline = (runId?: string) =>
 export const fetchState = () => call<BusinessState>('/state')
 export const runPolicyBench = () => call<BenchResult>('/policy-test', { method: 'POST' })
 export const resetDemo = () => call<{ status: string }>('/reset', { method: 'POST' })
+export const evaluateAction = (payload: EvaluationRequest) =>
+  call<EvaluationResponse>('/gate/evaluate', { method: 'POST', body: JSON.stringify(payload) })
+export const fetchPolicies = () => call<PolicyDefinition[]>('/policies')
+export const createPolicy = (payload: Omit<PolicyDefinition, 'id' | 'active'>) =>
+  call<PolicyDefinition>('/policies', { method: 'POST', body: JSON.stringify(payload) })
+export const activatePolicy = (id: string) =>
+  call<PolicyDefinition>(`/policies/${encodeURIComponent(id)}/activate`, { method: 'POST' })
+export const draftPolicy = (description: string) =>
+  call<PolicyDraft>('/policies/draft', { method: 'POST', body: JSON.stringify({ description }) })

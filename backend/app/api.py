@@ -11,11 +11,15 @@ arguments to execute would make the human approval meaningless.
 
 from typing import Any, Callable, Literal
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from app.events import Actor
 from app.policy.arguments import TOOL_SPECS
+from app.policy.engine import PolicyConfigurationError
+from app.policy.generic import describe, evaluate_generic
+from app.policy.studio import PolicyDefinition
+from app.policy.ai import DraftError, draft_payload, draft_policy
 from app.services import AuthorityGateway, Outcome
 
 DEFAULT_RUN = "demo"
@@ -91,6 +95,70 @@ class BenchResult(BaseModel):
     cases: list[BenchCase]
 
 
+class GenericPrincipal(BaseModel):
+    type: str = Field(min_length=1, max_length=64)
+    id: str = Field(min_length=1, max_length=128)
+
+
+class GenericResource(BaseModel):
+    type: str = Field(min_length=1, max_length=64)
+    id: str = Field(min_length=1, max_length=128)
+
+
+class EvaluateRequest(BaseModel):
+    principal: GenericPrincipal
+    action: str = Field(min_length=1, max_length=128)
+    resource: GenericResource
+    context: dict[str, Any] = Field(default_factory=dict)
+
+
+class EvaluateResponse(BaseModel):
+    decision: str
+    principal: str
+    action: str
+    resource: str
+    reason: str
+    reason_code: str
+    matched_policy: str | None = None
+
+
+class PolicyPayload(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
+    principal_type: str = Field(min_length=1, max_length=64)
+    principal_id: str = Field(min_length=1, max_length=128)
+    action: str = Field(min_length=1, max_length=128)
+    resource_type: str = Field(min_length=1, max_length=64)
+    decision: Literal["ALLOW", "REQUIRE_APPROVAL", "DENY"]
+    context_field: str | None = None
+    allow_threshold: int | None = Field(default=None, ge=0)
+    approval_threshold: int | None = Field(default=None, ge=0)
+
+
+class PolicyResponse(PolicyPayload):
+    id: str
+    active: bool
+
+    @classmethod
+    def of(cls, definition: PolicyDefinition) -> "PolicyResponse":
+        return cls(**{key: value for key, value in definition.__dict__.items()} if hasattr(definition, "__dict__") else {
+            "id": definition.id, "name": definition.name, "principal_type": definition.principal_type,
+            "principal_id": definition.principal_id, "action": definition.action,
+            "resource_type": definition.resource_type, "decision": definition.decision,
+            "context_field": definition.context_field, "allow_threshold": definition.allow_threshold,
+            "approval_threshold": definition.approval_threshold, "active": definition.active,
+        })
+
+
+class DraftRequest(BaseModel):
+    description: str = Field(min_length=1, max_length=2000)
+
+
+class DraftResponse(BaseModel):
+    draft: dict[str, Any]
+    cedar_preview: str
+    active: bool = False
+
+
 # The five cases the submission promises. They are declared here and evaluated
 # through the real engine; the count below is counted, never written down.
 BENCH_CASES: tuple[tuple[str, str, dict[str, Any], str], ...] = (
@@ -117,6 +185,101 @@ def build_router(health: Callable[[Response], Any]) -> APIRouter:
     def tools() -> dict[str, list[str]]:
         """What the agent is even able to propose. Not what it may do."""
         return {name: sorted(spec.fields) for name, spec in TOOL_SPECS.items()}
+
+    @router.post("/gate/evaluate", response_model=EvaluateResponse, tags=["gate"])
+    def evaluate(payload: EvaluateRequest, request: Request) -> EvaluateResponse:
+        verdict = evaluate_generic(
+            request.app.state.policy_engine,
+            payload.principal.id,
+            payload.action,
+            payload.resource.type,
+            payload.resource.id,
+            payload.context,
+            principal_type=payload.principal.type,
+        )
+        outcome = describe(verdict)
+        return EvaluateResponse(
+            decision=outcome["decision"],
+            principal=f"{payload.principal.type}:{payload.principal.id}",
+            action=payload.action,
+            resource=f"{payload.resource.type}:{payload.resource.id}",
+            reason=outcome["reason"],
+            reason_code=outcome["reason_code"],
+            matched_policy=outcome["matched_policy"],
+        )
+
+    @router.get("/policies", response_model=list[PolicyResponse], tags=["policies"])
+    def policies(request: Request) -> list[PolicyResponse]:
+        return [PolicyResponse.of(item) for item in request.app.state.policy_store.list()]
+
+    @router.post("/policies", response_model=PolicyResponse, status_code=201, tags=["policies"])
+    def create_policy(payload: PolicyPayload, request: Request) -> PolicyResponse:
+        try:
+            definition = PolicyDefinition.from_payload(payload.model_dump())
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        request.app.state.policy_store.save(definition)
+        return PolicyResponse.of(definition)
+
+    @router.post("/policies/draft", response_model=DraftResponse, tags=["policies"])
+    def draft_policy_route(payload: DraftRequest, request: Request) -> DraftResponse:
+        try:
+            definition = draft_policy(
+                payload.description,
+                api_key=request.app.state.settings.ai_api_key,
+                base_url=request.app.state.settings.ai_base_url,
+                model=request.app.state.settings.ai_model,
+            )
+            from app.policy.studio import generate_cedar
+
+            execute, approval = generate_cedar(definition)
+        except (DraftError, ValueError) as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        return DraftResponse(
+            draft=draft_payload(definition),
+            cedar_preview="\n\n".join(item for item in (execute, approval) if item),
+        )
+
+    @router.get("/policies/{policy_id}", response_model=PolicyResponse, tags=["policies"])
+    def get_policy(policy_id: str, request: Request) -> PolicyResponse:
+        definition = request.app.state.policy_store.get(policy_id)
+        if definition is None:
+            raise HTTPException(status_code=404, detail="Policy not found.")
+        return PolicyResponse.of(definition)
+
+    @router.post("/policies/{policy_id}/activate", response_model=PolicyResponse, tags=["policies"])
+    def activate_policy(policy_id: str, request: Request) -> PolicyResponse:
+        store = request.app.state.policy_store
+        definition = store.get(policy_id)
+        if definition is None:
+            raise HTTPException(status_code=404, detail="Policy not found.")
+        active = PolicyDefinition(**{**{field: getattr(definition, field) for field in definition.__slots__}, "active": True})
+        definitions = tuple(item for item in store.list() if item.active and item.id != policy_id) + (active,)
+        try:
+            # Compiles and Cedar-validates the candidate set without touching
+            # the engine. Only once this succeeds do we replace the live set
+            # and persist the flag, so a rejected policy is never active in
+            # either place — the last-known-good set keeps deciding.
+            request.app.state.policy_engine.replace_dynamic_policies(definitions)
+        except PolicyConfigurationError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        store.activate(policy_id)
+        return PolicyResponse.of(active)
+
+    @router.delete("/policies/{policy_id}", status_code=204, tags=["policies"])
+    def delete_policy(policy_id: str, request: Request) -> Response:
+        store = request.app.state.policy_store
+        definition = store.get(policy_id)
+        if definition is None:
+            raise HTTPException(status_code=404, detail="Policy not found.")
+        if definition.active:
+            definitions = tuple(item for item in store.list() if item.active and item.id != policy_id)
+            try:
+                request.app.state.policy_engine.replace_dynamic_policies(definitions)
+            except PolicyConfigurationError as error:
+                raise HTTPException(status_code=422, detail=str(error)) from error
+        store.delete(policy_id)
+        return Response(status_code=204)
 
     @router.post("/actions", response_model=OutcomeResponse)
     def propose(payload: ProposeRequest, request: Request) -> OutcomeResponse:

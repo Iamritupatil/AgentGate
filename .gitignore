@@ -13,11 +13,15 @@ __pycache__/
 htmlcov/
 .tools/
 .cache/
+backend/data/
 
 # Frontend output
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Vercel project link, written by `vercel link`
+.vercel/
 
 # Local verification output
 artifacts/

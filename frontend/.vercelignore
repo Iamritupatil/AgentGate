@@ -1,0 +1,11 @@
+# Vercel only needs the sources Vite compiles. Everything below is either
+# rebuilt on the build machine or belongs to the EC2 half of the deployment.
+node_modules
+dist
+tests
+playwright.config.ts
+test-results
+playwright-report
+.env
+.env.*
+!.env.example

@@ -268,3 +268,11 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `REVIEW`, `DONE`, `DEFERRED`.
 - Acceptance Criteria: A, B approve/deny, C, and Policy Test Bench pass twice; final release audit returns `RELEASE_READY`.
 - Blockers: V8-P13.
 - Reviewer Link: Pending.
+
+## Complete hackathon demo extension
+
+- Status: IN_PROGRESS
+- Goal: Generalize AgentGate beyond the refund demo while preserving scenarios, reset, approvals, and the Policy Test Bench.
+- Implemented: generic Cedar evaluation API, Policy Studio, non-activating AI drafts, Playground, runtime integration examples, isolated MCP adapter, and EC2 deployment artifacts.
+- Remaining: deploy to a user-provided EC2 instance and verify the public smoke tests.
+- Acceptance: all local suites and browser flows pass, then public health/evaluation and demo smoke tests pass before `AGENTGATE_LIVE_READY`.

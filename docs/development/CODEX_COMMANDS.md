@@ -19,10 +19,10 @@ After every prompt:
 ```text
 Read:
 - README.md
-- docs/01_VISION_PLAN_ARCHITECTURE.md
-- docs/03_BUILDER_ENGINEER_AGENT.md
-- docs/04_RESEARCHER_AGENT.md
-- docs/05_REVIEWER_AGENT.md
+- docs/architecture/VISION_PLAN_ARCHITECTURE.md
+- docs/development/BUILDER_ENGINEER_AGENT.md
+- docs/development/RESEARCHER_AGENT.md
+- docs/development/REVIEWER_AGENT.md
 
 Create or update:
 - TODO.md

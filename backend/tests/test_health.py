@@ -67,6 +67,12 @@ def test_the_api_surface_is_exactly_what_the_gate_needs(client):
         "/api/state",
         "/api/reset",
         "/api/policy-test",
+        "/api/gate/evaluate",
+        "/api/policies",
+        "/api/policies/{policy_id}",
+        "/api/policies/{policy_id}/activate",
+        "/api/policies/draft",
+        "/api/policies/draft",
     }
 
 
@@ -92,3 +98,41 @@ def test_cors_rejects_unconfigured_origin(client):
     )
     assert response.status_code == 400
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_cors_allows_preview_origins_by_pattern(tmp_path):
+    """Vercel names every preview deployment differently, so a split deployment
+    cannot enumerate the browser origins ahead of time."""
+    settings = Settings(
+        _env_file=None,
+        environment="test",
+        cors_origins=[],
+        cors_origin_regex=r"https://agentgate-[a-z0-9]+\.vercel\.app",
+        policy_store_path=tmp_path / "policies.json",
+    )
+
+    with TestClient(create_app(settings)) as client:
+        allowed = client.options(
+            "/health",
+            headers={
+                "Origin": "https://agentgate-7f3a1c.vercel.app",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert allowed.status_code == 200
+        assert (
+            allowed.headers["access-control-allow-origin"]
+            == "https://agentgate-7f3a1c.vercel.app"
+        )
+
+        # The pattern is matched against the whole origin, so a lookalike host
+        # that merely starts with an allowed one stays out.
+        spoofed = client.options(
+            "/health",
+            headers={
+                "Origin": "https://agentgate-7f3a1c.vercel.app.attacker.example",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert spoofed.status_code == 400
+        assert "access-control-allow-origin" not in spoofed.headers

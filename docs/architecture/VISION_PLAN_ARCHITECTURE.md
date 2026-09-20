@@ -175,27 +175,34 @@ audit events -> OpenSearch
 ```text
 agent-gate/
 ├── README.md
-├── TODO.md
-├── STATUS.md
-├── AGENTGATE_BOOK.md
+├── LICENSE
+├── DEPLOY_EC2.md
+├── MCP.md
 ├── docs/
-│   ├── 01_VISION_PLAN_ARCHITECTURE.md
-│   ├── 02_CODEX_COMMANDS.md
-│   ├── 03_BUILDER_ENGINEER_AGENT.md
-│   ├── 04_RESEARCHER_AGENT.md
-│   └── 05_REVIEWER_AGENT.md
+│   ├── architecture/
+│   │   └── VISION_PLAN_ARCHITECTURE.md
+│   ├── development/
+│   │   ├── CODEX_COMMANDS.md
+│   │   ├── BUILDER_ENGINEER_AGENT.md
+│   │   ├── RESEARCHER_AGENT.md
+│   │   ├── REVIEWER_AGENT.md
+│   │   ├── AGENTGATE_BOOK.md
+│   │   ├── STATUS.md
+│   │   └── TODO.md
+│   └── DEMO.md
 ├── frontend/
 ├── backend/
 │   ├── app/
 │   └── tests/
 ├── policies/
+├── deployment/
 ├── infrastructure/
 └── scripts/
 ```
 
 ## Shared project files
 
-All agents maintain three repository-root files.
+All agents maintain three files under `docs/development/`.
 
 ### TODO.md
 

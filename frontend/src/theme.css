@@ -1,0 +1,75 @@
+/* One design language for the whole product: the site and the control room read
+   from these tokens, so a surface cannot drift between the two.
+
+   The palette, radii and the layered near-invisible shadow are taken from the
+   Verseo reference design: a near-white canvas, white cards on hairline
+   borders, soft corners everywhere, and colour used only to carry meaning. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ---- ink ---- */
+  --ink: #0b0d14;
+  --ink-soft: #1c1c1c;
+  --body: #505050;
+  --muted: #858585;
+  --faint: #c3c4c4;
+
+  /* ---- surfaces ---- */
+  --paper: #ffffff;
+  --shell: #f9f9f9;
+  --tint: #f6f6f6;
+  --raise: #fcfcfc;
+  --line: #e8e8e8;
+  --line-soft: #f0f0f0;
+  --night: #0b0d14;
+  --night-ink: #d7d9de;
+
+  /* ---- accent and the pastels that carry state ---- */
+  --accent: #006fff;
+  --accent-soft: #c2e1ff;
+  --accent-wash: #eff5ff;
+  --mint: #a2e198;
+  --amber: #ffcc40;
+  --coral: #ec6b5e;
+  --lilac: #aeabff;
+
+  /* ---- decisions. One hue per decision, in a soft and a legible weight. ---- */
+  --allow: #2f6b3f;
+  --allow-bg: #eef8ea;
+  --allow-line: #cfe9c6;
+  --allow-dot: #7fce72;
+  --approval: #8a6208;
+  --approval-bg: #fff6e0;
+  --approval-line: #f4dfaa;
+  --approval-dot: #ffcc40;
+  --deny: #b04537;
+  --deny-bg: #fdeeec;
+  --deny-line: #f6cfc9;
+  --deny-dot: #ec6b5e;
+
+  /* ---- soft corners. Nothing in the product is a hard rectangle. ---- */
+  --r-xl: 26px;
+  --r-lg: 18px;
+  --r-md: 14px;
+  --r-sm: 10px;
+  --r-xs: 7px;
+  --r-pill: 100px;
+
+  /* ---- shadow. Four stacked layers at 2-3% so a card lifts off the canvas
+          without ever drawing a visible edge. ---- */
+  --shadow-card:
+    0 0 0 1px rgba(0, 0, 0, .03),
+    0 16px 24px -12px rgba(0, 0, 0, .03),
+    0 32px 32px -20px rgba(0, 0, 0, .03),
+    0 40px 48px -20px rgba(0, 0, 0, .02);
+  --shadow-soft: 0 1px 2px -1px rgba(0, 0, 0, .05), 0 10px 20px -12px rgba(0, 0, 0, .08);
+  --shadow-lift:
+    0 13px 20px -10px rgba(0, 0, 0, .04),
+    0 27px 27px -17px rgba(0, 0, 0, .03),
+    0 47px 47px -17px rgba(0, 0, 0, .03),
+    0 73px 47px -17px rgba(0, 0, 0, .03);
+
+  --mono: 'JetBrains Mono', Consolas, monospace;
+  --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}

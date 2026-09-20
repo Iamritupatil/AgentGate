@@ -25,6 +25,14 @@ class Settings(BaseSettings):
             "http://127.0.0.1:5173",
         ]
     )
+    # Vercel gives every preview deployment its own hostname, so the browser
+    # origin cannot be enumerated ahead of time. A regex keeps the allowlist
+    # closed over a known suffix instead of degrading to "*".
+    cors_origin_regex: str | None = None
     # Policies live outside the backend package so they read as the product's
     # authority document, not as application code that happens to be data.
     policy_dir: Path = Field(default_factory=lambda: BACKEND_DIR.parent / "policies")
+    policy_store_path: Path = Field(default_factory=lambda: BACKEND_DIR / "data" / "policies.json")
+    ai_api_key: str | None = None
+    ai_base_url: str = "https://api.openai.com/v1"
+    ai_model: str = "gpt-4o-mini"

@@ -137,11 +137,11 @@ tool.
 **"How do you know the tests are real?"**
 Two checks. Emptying both policy files turns every allow into a deny. Changing the
 ₹2,000 limit to ₹3,000 fails the boundary matrix. Both are recorded in
-`AGENTGATE_BOOK.md`.
+[AGENTGATE_BOOK.md](development/AGENTGATE_BOOK.md).
 
 **"What would break this?"**
 Restart the backend. Approvals are in-process, so pending actions are lost — that is
-written down in `STATUS.md` as unmet, not glossed over. Durable storage and native
+written down in [STATUS.md](development/STATUS.md) as unmet, not glossed over. Durable storage and native
 Strands resume are the next two pieces.
 
 ---

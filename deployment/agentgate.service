@@ -1,0 +1,30 @@
+[Unit]
+Description=AgentGate FastAPI authority service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agentgate
+Group=agentgate
+WorkingDirectory=/opt/agentgate
+EnvironmentFile=/etc/agentgate/agentgate.env
+# One worker, deliberately. Approvals and the timeline live in process memory,
+# so a second worker would answer with a different pending queue than the one
+# that issued the approval.
+ExecStart=/opt/agentgate/backend/.venv/bin/uvicorn app.main:app --app-dir /opt/agentgate/backend --host 127.0.0.1 --port 8000 --workers 1
+Restart=on-failure
+RestartSec=3
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# The only path the service writes: the Policy Studio store.
+ReadWritePaths=/opt/agentgate/backend/data
+
+[Install]
+WantedBy=multi-user.target

@@ -8,5 +8,20 @@
     "uid": { "type": "AgentGate::Store", "id": "demo" },
     "attrs": {},
     "parents": []
+  },
+  {
+    "uid": { "type": "AgentGate::Order", "id": "ORD-1" },
+    "attrs": {},
+    "parents": []
+  },
+  {
+    "uid": { "type": "AgentGate::Environment", "id": "production" },
+    "attrs": {},
+    "parents": []
+  },
+  {
+    "uid": { "type": "AgentGate::Database", "id": "production" },
+    "attrs": {},
+    "parents": []
   }
 ]
