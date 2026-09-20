@@ -7,10 +7,6 @@
     {
       "source": "/api/:path*",
       "destination": "http://35.172.195.221:8000/api/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
     }
   ],
   "headers": [
@@ -18,17 +14,13 @@
       "source": "/api/:path*",
       "headers": [
         {
-          "key": "x-vercel-enable-rewrite-caching",
-          "value": "0"
-        },
-        {
           "key": "Cache-Control",
           "value": "no-store"
         }
       ]
     },
     {
-      "source": "/assets/(.*)",
+      "source": "/assets/:path*",
       "headers": [
         {
           "key": "Cache-Control",
@@ -37,7 +29,7 @@
       ]
     },
     {
-      "source": "/(.*)",
+      "source": "/:path*",
       "headers": [
         {
           "key": "X-Content-Type-Options",
