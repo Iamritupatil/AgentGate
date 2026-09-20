@@ -1,0 +1,12 @@
+[
+  {
+    "uid": { "type": "AgentGate::Agent", "id": "support-agent" },
+    "attrs": {},
+    "parents": []
+  },
+  {
+    "uid": { "type": "AgentGate::Store", "id": "demo" },
+    "attrs": {},
+    "parents": []
+  }
+]

@@ -1,0 +1,52 @@
+// AgentGate authority model.
+//
+// Cedar answers only Allow or Deny. AgentGate's third state, REQUIRE_APPROVAL,
+// is composed from two requests: the real tool action, then the synthetic
+// `request_refund_approval` action. The synthetic action is declared here so a
+// schema validation failure catches any drift between the two checks.
+//
+// Money is a Cedar `Long` in whole rupees. The application rejects booleans,
+// floats, strings and missing values before a request is ever constructed.
+
+namespace AgentGate {
+  entity Agent;
+  entity Store;
+
+  action lookup_order appliesTo {
+    principal: Agent,
+    resource: Store,
+    context: { input: { order_id: String } }
+  };
+
+  action lookup_customer appliesTo {
+    principal: Agent,
+    resource: Store,
+    context: { input: { customer_id: String } }
+  };
+
+  action refund_order appliesTo {
+    principal: Agent,
+    resource: Store,
+    context: { input: { order_id: String, amount: Long } }
+  };
+
+  // Synthetic. Never executes a business operation; it only asks whether this
+  // refund may be escalated to a human.
+  action request_refund_approval appliesTo {
+    principal: Agent,
+    resource: Store,
+    context: { input: { order_id: String, amount: Long } }
+  };
+
+  action send_email appliesTo {
+    principal: Agent,
+    resource: Store,
+    context: { input: { customer_id: String, subject: String, body: String } }
+  };
+
+  action export_customers appliesTo {
+    principal: Agent,
+    resource: Store,
+    context: { input: {} }
+  };
+}

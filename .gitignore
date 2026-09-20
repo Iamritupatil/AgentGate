@@ -1,0 +1,26 @@
+# Local settings and credentials
+.env
+.env.*
+!.env.example
+
+# Python and local tool downloads
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tools/
+.cache/
+
+# Frontend output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local verification output
+artifacts/
+*.log
+.DS_Store
+Thumbs.db
