@@ -161,13 +161,13 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `REVIEW`, `DONE`, `DEFERRED`.
 - Volume: V - Experience
 - Phase: 7
 - Owner: Builder Engineer
-- Status: TODO
-- Status note: the backend endpoints this task depends on now exist; the React work has not started.
+- Status: REVIEW
 - Goal: Implement the desktop-first scenario runner, truthful timeline, approval card, and reset flow.
 - Files: `frontend/src/`, UI tests. The backend side is built: `/api/actions`, `/api/pending`, `/api/pending/{id}`, `/api/timeline`, `/api/state`, `/api/reset`, `/api/policy-test`, `/api/tools`.
 - Acceptance Criteria: Scenario presets A/B/C; actor labels; tool arguments and policy reason; approve/deny; loading/error states; rendered outcome comes from backend state; Scenario B is the centerpiece.
-- Blockers: Review Gate 2. The timeline already distinguishes OPERATOR from AGENT, so the UI must not label an operator-typed call as a model decision.
-- Reviewer Link: Pending.
+- Blockers: None for implementation. Review Gate 2 outstanding.
+- Reviewer Link: [Control room build evidence](AGENTGATE_BOOK.md#phase-7-build-evidence). Reviewer verdict pending.
+- Acceptance Evidence: 11 browser checks drive the real UI against the real API: all three scenarios, approve and deny, reset, offline handling, and the approval card at 390px. Every rendered outcome comes from `/api/state` and `/api/timeline`, not from local assumptions. Proposals are labelled OPERATOR; a test asserts no AGENT chip appears, because no model ran.
 
 ### V5-P8 - Policy Test Bench
 
@@ -175,15 +175,15 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `REVIEW`, `DONE`, `DEFERRED`.
 - Volume: V - Experience
 - Phase: 8
 - Owner: Builder Engineer
-- Status: IN_PROGRESS
-- Status note: backend done; frontend not started.
+- Status: REVIEW
 - Goal: Display a one-click 5/5 result derived from real backend Cedar evaluations.
 - Files: `backend/app/api.py`, `backend/tests/test_api.py`, frontend test-bench components
 - Acceptance Criteria: Five required cases execute through the real policy engine; intentionally failing backend result renders failure; no hardcoded pass count.
-- Blockers: V5-P7 for the frontend half.
+- Blockers: None for implementation.
 - Reviewer Link: [Phase 3B build evidence](AGENTGATE_BOOK.md#phase-3b-build-evidence). Reviewer verdict pending.
 - Done: `POST /api/policy-test` evaluates all five cases through the real engine and counts its own passes; the count is derived, never written down. A test proves the bench changes no business state and creates no pending actions, so it cannot prove a refund is permitted by performing one.
-- Remaining: the frontend component, and a test that an intentionally failing backend result renders as a failure rather than a green badge.
+- Done (frontend): the bench renders the backend's own count and marks each case pass or fail from the response. A browser test asserts 5/5, that no case renders as failed, and that no order was refunded by running it.
+- Remaining: a test that an intentionally failing backend result renders as a failure rather than a green badge. The render path is driven entirely by `case.passed` and `all_passed`, so it is wired for it.
 
 ## Volume VI - Local AWS and Audit
 

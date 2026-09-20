@@ -1,8 +1,8 @@
 # Status
 
-Last updated: 2026-09-20T17:20:00+05:30
-Current volume: Volume II - Deterministic Authority (built), with parts of Volumes III/IV/V
-Current phase: Phase 3 complete and self-verified; Review Gate 1 not yet run
+Last updated: 2026-09-20T18:05:00+05:30
+Current volume: Volumes II and V built; parts of III and IV built
+Current phase: The three demo scenarios run end to end through the UI. Review Gate 1 not yet run.
 
 ## Working
 
@@ -30,8 +30,10 @@ Current phase: Phase 3 complete and self-verified; Review Gate 1 not yet run
 - Everything from Volumes I: FastAPI factory, typed `/health`, immutable domain models,
   deterministic seeds for ORD-1001/1002/1003, `InMemoryStore` with atomic single-refund
   semantics, and the five business tools.
-- React/Vite control-room shell with live health and scenario previews. Its health
-  contract now expects `phase=authority` and `policy_engine=cedar`.
+- **The control room runs the demo.** Scenario A/B/C buttons propose real tool calls,
+  the timeline renders live events with actor labels, the approval card approves or
+  denies one exact action, Reset restores the demo, and the Policy Test Bench reports
+  5/5 from real evaluations. 11 browser tests drive these exact clicks.
 
 ## Broken or Missing
 
@@ -44,12 +46,7 @@ Current phase: Phase 3 complete and self-verified; Review Gate 1 not yet run
   lands, both must be added and `DIGEST_VERSION` incremented.
 - **The approval store is in-process.** V4-P6B's restart and session-restoration
   criterion is not met and is not claimed. A process restart loses all pending actions.
-- **The control room does not run anything.** Scenario buttons are still previews. The
-  backend endpoints they need now exist; the React work has not started.
-- No Policy Test Bench UI, no SAM/LocalStack, no OpenSearch.
-- The workspace root is still not a usable Git worktree, so no commit hash is available.
-  `git rev-parse --show-toplevel` resolves to the user home directory, which means
-  `AgentGate/` is not its own repository. This should be fixed before submission.
+- No SAM/LocalStack, no OpenSearch.
 - PowerShell blocks `npm.ps1`; Windows commands must use `npm.cmd`.
 - Docker engine access and AWS SAM CLI were unavailable in earlier probes and were not
   rechecked; neither is a prerequisite for anything built so far.
@@ -59,6 +56,10 @@ Current phase: Phase 3 complete and self-verified; Review Gate 1 not yet run
 - command: `.\backend\.venv\Scripts\python.exe -m pytest backend/tests`
   result: PASS - 178 tests. Breakdown: 54 policy, 47 gateway/API, 45 business tools,
   23 storage/model, 9 health/config.
+- command: `$env:E2E_BASE_URL='http://127.0.0.1:4173'; npm.cmd run test:e2e`
+  result: PASS - 11 browser checks against the live API. Covers all three scenarios
+  through the UI, approve and deny, OPERATOR-not-AGENT attribution, the 5/5 bench with
+  zero business mutation, reset, offline handling and the mobile approval card.
 - command: `.\backend\.venv\Scripts\python.exe -m pytest backend/tests/policy`
   result: PASS - 54 checks covering the full boundary matrix, malformed and hostile
   arguments, unknown actions, startup validation failures, engine-error fail-closed
@@ -78,9 +79,7 @@ Current phase: Phase 3 complete and self-verified; Review Gate 1 not yet run
   `phase=foundation` payload.
 - command: `npm.cmd run build` (frontend)
   result: PASS - TypeScript check and Vite production bundle.
-- command: `$env:E2E_BASE_URL='http://127.0.0.1:4173'; npm.cmd run test:e2e`
-  result: PASS - 4 browser checks in headless Edge against the live API, including
-  offline recovery and malformed-response rejection.
+
 
 ## Open P0/P1 Defects
 
@@ -130,19 +129,21 @@ Current phase: Phase 3 complete and self-verified; Review Gate 1 not yet run
 
 ## Next Action
 
-Run Review Gate 1 over Volumes I and II before starting Phase 4. The Reviewer should
-independently re-run the policy matrix, the empty-policy check and the boundary mutation
-check, then attack the gateway's exactly-once and zero-mutation claims. Phase 4 (Strands)
-follows, and its intervention must delegate to the existing `AuthorityGateway` rather
-than introducing a second execution path.
+The demo is submittable: rehearse it twice from a clean reset using `DEMO.md`.
+
+After submission, Review Gate 1 over Volumes I and II. The Reviewer should independently
+re-run the policy matrix, the empty-policy check and the boundary mutation check, then
+attack the gateway's exactly-once and zero-mutation claims. Phase 4 (Strands) follows,
+and its intervention must delegate to the existing `AuthorityGateway` rather than
+introducing a second execution path.
 
 ## Latest Review
 
 Gate: Not started
 Verdict: Not reviewed
 Tests executed: Builder verification only - 178 backend checks, 11 frontend unit checks,
-4 browser checks, typecheck and production build, plus a live HTTP run of all three
-scenarios. No independent reviewer gate yet.
+11 browser checks against the live API, typecheck and production build, plus a live HTTP
+run of all three scenarios. No independent reviewer gate yet.
 P0: 0
 P1: 0
 P2: 0
@@ -150,4 +151,4 @@ Next required action: Review Gate 1 covering foundation and authority.
 
 ## Latest Commit
 
-- Unavailable: the workspace root is not a usable Git worktree.
+- `AgentGate/` is now its own Git repository. See `git log` for the current hash.

@@ -58,6 +58,7 @@ def test_the_api_surface_is_exactly_what_the_gate_needs(client):
     rather than accepted because the suite still passes."""
     assert set(client.get("/openapi.json").json()["paths"]) == {
         "/health",
+        "/api/health",
         "/api/tools",
         "/api/actions",
         "/api/pending",

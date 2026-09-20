@@ -14,24 +14,25 @@ approval lifecycle, the timeline, the reset, and the Policy Test Bench — all o
 | Non-bypassable gateway to business tools | **Implemented** at the application layer |
 | Pending actions, approve / deny, exactly-once | **Implemented** — in-process storage |
 | HTTP API over the gate | **Implemented** |
-| Policy Test Bench endpoint | **Implemented** |
+| Policy Test Bench endpoint and UI | **Implemented** |
 | Strands agent proposing tool calls | **Not implemented** |
 | Native Strands interrupt / resume | **Not implemented** |
 | Durable approval storage across restart | **Not implemented** |
-| Control-room UI that runs scenarios | **Not implemented** — still previews |
+| Control-room UI that runs scenarios | **Implemented** — 11 browser tests |
 | SAM / LocalStack, OpenSearch | **Not implemented** |
 
 Two consequences worth stating plainly:
 
-- **Nothing proposes a tool call on its own yet.** Every proposal is typed by an
-  operator, and the timeline labels it `OPERATOR` rather than `AGENT` for that reason.
+- **Nothing proposes a tool call on its own yet.** Each scenario proposes a fixed
+  sequence of tool calls, and the timeline labels them `OPERATOR` rather than `AGENT` for
+  that reason. The UI says so on screen.
 - **The approval path is the documented application-level fallback**, not native
   Strands resume. Its argument digest binds a gateway-issued proposal ID and a reset
   epoch. When Strands lands, the Strands tool-use ID and interrupt ID must be added to
   that envelope.
 
-See [STATUS.md](STATUS.md) for verification evidence and [TODO.md](TODO.md) for what is
-next. Sections below marked *planned* or *target* describe work that does not exist yet.
+Run the demo with [DEMO.md](DEMO.md). See [STATUS.md](STATUS.md) for verification
+evidence and [TODO.md](TODO.md) for what is next. Sections below marked *planned* or *target* describe work that does not exist yet.
 
 ## The authority gate — Phase 3
 
@@ -587,6 +588,7 @@ agent-gate/
 ├── 03_BUILDER_ENGINEER_AGENT.md
 ├── 04_RESEARCHER_AGENT(1).md
 ├── 05_REVIEWER_AGENT(1).md
+├── DEMO.md                  # The three-minute demo script
 ├── TODO.md
 ├── STATUS.md
 ├── AGENTGATE_BOOK.md
@@ -702,8 +704,8 @@ Open [the control room](http://127.0.0.1:5173). The API health endpoint is
 [localhost:8000/health](http://127.0.0.1:8000/health); API documentation is at
 [localhost:8000/docs](http://127.0.0.1:8000/docs). Stop either server with Ctrl+C.
 
-The control room does not run scenarios yet. To exercise the gate today, use the API
-directly — for example, from `/docs`, or:
+Pick a scenario and press **Run scenario**. [DEMO.md](DEMO.md) is the three-minute
+walkthrough. The same gate is reachable directly from `/docs` if you prefer:
 
 ```powershell
 $body = '{"tool":"refund_order","arguments":{"order_id":"ORD-1002","amount":8499}}'

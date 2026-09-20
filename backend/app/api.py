@@ -9,9 +9,9 @@ accept replacement arguments, because an endpoint that let a caller supply the
 arguments to execute would make the human approval meaningless.
 """
 
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel, Field
 
 from app.events import Actor
@@ -106,8 +106,12 @@ def gateway_of(request: Request) -> AuthorityGateway:
     return request.app.state.gateway
 
 
-def build_router() -> APIRouter:
+def build_router(health: Callable[[Response], Any]) -> APIRouter:
     router = APIRouter(prefix="/api", tags=["authority"])
+
+    # The browser reaches the API under /api, so liveness lives here too. The
+    # root /health stays for process and infrastructure checks.
+    router.add_api_route("/health", health, methods=["GET"], tags=["system"])
 
     @router.get("/tools")
     def tools() -> dict[str, list[str]]:

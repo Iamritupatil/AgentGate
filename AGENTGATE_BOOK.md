@@ -1021,3 +1021,81 @@ acceptance criterion in V4-P6B is therefore not met, and is not claimed.
   small lie that the whole demo rests on. The actor is now a parameter.
 - The gate's public surface is a security boundary, so it is asserted in a
   test. Every method added to it since has had to justify itself.
+
+<a id="phase-7-build-evidence"></a>
+
+## Volume V — Control room build evidence (2026-09-20)
+
+### Goal
+
+Make the three scenarios runnable by a person in a browser, truthfully. The demo is the
+product, and until now the gate was only reachable with curl.
+
+### Design
+
+Each scenario is a fixed sequence of proposed tool calls declared in `App.tsx`. No model
+picks them, so the UI says so on screen and the timeline labels them `OPERATOR`. The
+calls are shown before you run them, so the audience sees exactly what Cedar will be
+asked.
+
+The scenario loop is sequential and breaks on `REQUIRE_APPROVAL`. A call that pauses for
+a human must not be overtaken by the next one in the list.
+
+Every rendered outcome is read back from `/api/state` and `/api/timeline` after each
+action. Nothing is inferred from the response the UI just received, so the screen cannot
+claim a refund the store did not commit. The state strip under the timeline exists
+purely so that any claim above it can be checked against the store.
+
+### Implementation
+
+- `frontend/src/api.ts` — typed client for the whole gate surface.
+- `frontend/src/App.tsx` — scenario runner, live timeline with actor chips, approval
+  card, reset, and the Policy Test Bench panel.
+- `frontend/src/styles.css` — timeline, approval card, state strip, bench.
+- `backend/app/api.py` — `/api/health` added; see failures below.
+
+### Tests
+
+11 browser checks against the real API, all passing. They are the exact clicks the demo
+makes, so a green run means the demo works:
+
+- Scenario A executes and ORD-1001 reads refunded ₹799.
+- Scenario B shows the approval card, ORD-1002 still reads untouched, then Approve
+  executes it once and the card disappears.
+- Scenario B denied leaves ORD-1002 untouched.
+- Scenario C shows both blocks with their reason codes and all orders untouched.
+- Proposals render as OPERATOR; a test asserts no AGENT chip exists anywhere.
+- The bench reports 5/5 and refunds nothing.
+- Reset clears the timeline and the refunds.
+- Offline disables Run and the bench; refresh restores them; an invalid health payload
+  cannot turn the indicator green.
+- The approval card is usable at 390px.
+
+### Failures encountered
+
+**Every gate call 404'd from the browser while `/health` worked.** The Vite proxy
+rewrote `/api/*` to `/*`, which suited a backend whose only route was `/health` and
+silently broke everything under `/api`. Fixed by dropping the rewrite and adding
+`/api/health` to the router, so the browser path and the API path are the same string.
+The root `/health` stays for process checks.
+
+**Scenario B's approval passed alone and failed in the full suite.** Playwright's
+`fullyParallel: false` only serialises tests within a file; two spec files still ran on
+two workers, and one file's `reset` wiped the other's run mid-test. `workers: 1` is now
+pinned in the config with the reason written next to it. This is the same single-writer
+constraint the backend already has, showing up in the test layer.
+
+Two failures were ambiguous selectors rather than product bugs: `getByText('EXPLICIT_FORBID')`
+matched both the policy-checked row and the blocked row, and `getByRole('button', {name: 'Deny'})`
+matched Scenario C's card as well as the approval button.
+
+### Lessons
+
+- A proxy rewrite is invisible until a second route exists. The health endpoint kept
+  working, which made it look like a backend routing problem rather than a proxy one.
+- Reading state back after every action costs one request and removes a whole class of
+  lie from the UI.
+- Showing the proposed calls before running them turned out to be the clearest part of
+  the screen: the audience sees the arguments Cedar is about to judge.
+
+---

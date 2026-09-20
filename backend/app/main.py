@@ -71,7 +71,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             environment=config.environment,
         )
 
-    application.include_router(build_router())
+    application.include_router(build_router(health))
     return application
 
 
