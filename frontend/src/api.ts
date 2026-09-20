@@ -7,7 +7,10 @@ export interface Health {
   policy_engine: 'cedar'
 }
 
-export type Decision = 'ALLOW' | 'REQUIRE_APPROVAL' | 'DENY'
+export type Decision =
+  | 'ALLOW'
+  | 'REQUIRE_APPROVAL'
+  | 'DENY'
 
 export interface Outcome {
   decision: Decision
@@ -16,7 +19,10 @@ export interface Outcome {
   result: Record<string, unknown> | null
   pending_id: string | null
   determining_policies: string[]
-  error: { code: string; message: string } | null
+  error: {
+    code: string
+    message: string
+  } | null
 }
 
 export interface Pending {
@@ -30,7 +36,12 @@ export interface Pending {
   created_at: string
 }
 
-export type Actor = 'OPERATOR' | 'AGENT' | 'CEDAR' | 'HUMAN' | 'TOOL'
+export type Actor =
+  | 'OPERATOR'
+  | 'AGENT'
+  | 'CEDAR'
+  | 'HUMAN'
+  | 'TOOL'
 
 export interface TimelineEvent {
   sequence: number
@@ -59,9 +70,18 @@ export interface BenchResult {
 }
 
 export interface EvaluationRequest {
-  principal: { type: string; id: string }
+  principal: {
+    type: 'Agent'
+    id: string
+  }
+
   action: string
-  resource: { type: string; id: string }
+
+  resource: {
+    type: string
+    id: string
+  }
+
   context: Record<string, unknown>
 }
 
@@ -78,7 +98,7 @@ export interface EvaluationResponse {
 export interface PolicyDefinition {
   id: string
   name: string
-  principal_type: string
+  principal_type: 'Agent'
   principal_id: string
   action: string
   resource_type: string
@@ -90,7 +110,7 @@ export interface PolicyDefinition {
 }
 
 export interface PolicyDraft {
-  draft: Omit<PolicyDefinition, 'id' | 'active'> & { id: string; active: boolean }
+  draft: PolicyDefinition
   cedar_preview: string
   active: boolean
 }
@@ -105,82 +125,385 @@ export interface Order {
   currency: string
 }
 
+export interface Refund {
+  refund_id: string
+  order_id: string
+  amount: number
+  currency: string
+}
+
+export interface RecordedEmail {
+  email_id: string
+  customer_id: string
+  to: string
+  subject: string
+  body: string
+}
+
 export interface BusinessState {
   orders: Order[]
-  refunds: { refund_id: string; order_id: string; amount: number; currency: string }[]
-  emails: { email_id: string; customer_id: string; to: string; subject: string; body: string }[]
+  refunds: Refund[]
+  emails: RecordedEmail[]
 }
 
-const apiBase = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '')
+/*
+ * IMPORTANT:
+ *
+ * Browser ALWAYS talks to the same HTTPS Vercel origin:
+ *
+ *   /api/...
+ *
+ * Vercel then proxies those requests server-side to EC2.
+ *
+ * Never put the EC2 HTTP address here.
+ */
+export const apiBase = '/api'
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    signal: AbortSignal.timeout(10000),
-    cache: 'no-store',
-    headers: { Accept: 'application/json', ...(init?.body ? { 'Content-Type': 'application/json' } : {}) },
-  })
-  if (!response.ok) {
-    throw new Error(`The API returned HTTP ${response.status}.`)
+export const apiDocsUrl = '/api/docs'
+
+export const apiOpenApiUrl = '/api/openapi.json'
+
+async function readResponse(
+  response: Response,
+): Promise<unknown> {
+  if (response.status === 204) {
+    return null
   }
-  return (await response.json()) as T
+
+  const contentType =
+    response.headers.get('content-type') ?? ''
+
+  if (
+    contentType.includes('application/json')
+  ) {
+    return response.json()
+  }
+
+  return response.text()
 }
 
-export async function fetchHealth(signal?: AbortSignal): Promise<Health> {
-  const timeout = AbortSignal.timeout(5000)
-  const response = await fetch(`${apiBase}/health`, {
-    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-    cache: 'no-store',
-    headers: { Accept: 'application/json' },
-  })
+function getErrorMessage(
+  status: number,
+  body: unknown,
+): string {
+  if (
+    body &&
+    typeof body === 'object' &&
+    'detail' in body
+  ) {
+    const detail = (
+      body as {
+        detail?: unknown
+      }
+    ).detail
 
-  if (!response.ok) {
-    throw new Error(`The API returned HTTP ${response.status}.`)
+    if (typeof detail === 'string') {
+      return detail
+    }
+
+    if (detail !== undefined) {
+      try {
+        return JSON.stringify(detail)
+      } catch {
+        // fallback below
+      }
+    }
   }
 
-  const payload: unknown = await response.json()
+  if (
+    typeof body === 'string' &&
+    body.trim()
+  ) {
+    return body
+  }
+
+  return `The API returned HTTP ${status}.`
+}
+
+async function call<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
+  const url = `${apiBase}${path}`
+
+  let response: Response
+
+  try {
+    response = await fetch(url, {
+      ...init,
+
+      cache: 'no-store',
+
+      signal:
+        init?.signal ??
+        AbortSignal.timeout(10000),
+
+      headers: {
+        Accept: 'application/json',
+
+        ...(init?.body
+          ? {
+              'Content-Type':
+                'application/json',
+            }
+          : {}),
+
+        ...init?.headers,
+      },
+    })
+  } catch (error) {
+    if (
+      error instanceof DOMException &&
+      error.name === 'TimeoutError'
+    ) {
+      throw new Error(
+        `AgentGate API timed out at ${url}.`,
+      )
+    }
+
+    throw new Error(
+      `Unable to reach AgentGate API at ${url}.`,
+      {
+        cause: error,
+      },
+    )
+  }
+
+  const body =
+    await readResponse(response)
+
+  if (!response.ok) {
+    throw new Error(
+      getErrorMessage(
+        response.status,
+        body,
+      ),
+    )
+  }
+
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  return body as T
+}
+
+export async function fetchHealth(
+  signal?: AbortSignal,
+): Promise<Health> {
+  const url = `${apiBase}/health`
+
+  let response: Response
+
+  try {
+    response = await fetch(url, {
+      cache: 'no-store',
+
+      signal:
+        signal ??
+        AbortSignal.timeout(5000),
+
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+  } catch (error) {
+    throw new Error(
+      `Unable to reach AgentGate API at ${url}.`,
+      {
+        cause: error,
+      },
+    )
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `The API returned HTTP ${response.status}.`,
+    )
+  }
+
+  const payload: unknown =
+    await response.json()
+
   if (
     !payload ||
-    typeof payload !== 'object' ||
-    !('status' in payload) || payload.status !== 'ok' ||
-    !('service' in payload) || typeof payload.service !== 'string' || !payload.service ||
-    !('version' in payload) || typeof payload.version !== 'string' || !payload.version ||
-    !('environment' in payload) ||
-    !['development', 'test', 'production'].includes(String(payload.environment)) ||
-    !('phase' in payload) || payload.phase !== 'authority' ||
-    !('policy_engine' in payload) || payload.policy_engine !== 'cedar'
+    typeof payload !== 'object'
   ) {
-    throw new Error('The API returned an unexpected health response.')
+    throw new Error(
+      'The API returned an unexpected health response.',
+    )
+  }
+
+  const health =
+    payload as Partial<Health>
+
+  if (
+    health.status !== 'ok' ||
+    typeof health.service !== 'string' ||
+    !health.service ||
+    typeof health.version !== 'string' ||
+    !health.version ||
+    ![
+      'development',
+      'test',
+      'production',
+    ].includes(
+      String(health.environment),
+    ) ||
+    health.phase !== 'authority' ||
+    health.policy_engine !== 'cedar'
+  ) {
+    throw new Error(
+      'The API returned an unexpected health response.',
+    )
   }
 
   return payload as Health
 }
 
-export const proposeAction = (tool: string, args: Record<string, unknown>, runId: string) =>
-  call<Outcome>('/actions', {
-    method: 'POST',
-    body: JSON.stringify({ tool, arguments: args, run_id: runId }),
-  })
+export const proposeAction = (
+  tool: string,
+  args: Record<string, unknown>,
+  runId: string,
+) =>
+  call<Outcome>(
+    '/actions',
+    {
+      method: 'POST',
 
-/** Carries only an id, a version and a decision. Never the arguments. */
-export const decidePending = (pendingId: string, decision: 'approve' | 'deny', version: number) =>
-  call<Outcome>(`/pending/${encodeURIComponent(pendingId)}`, {
-    method: 'POST',
-    body: JSON.stringify({ decision, version }),
-  })
+      body: JSON.stringify({
+        tool,
+        arguments: args,
+        run_id: runId,
+      }),
+    },
+  )
 
-export const fetchPending = () => call<Pending[]>('/pending')
-export const fetchTimeline = (runId?: string) =>
-  call<TimelineEvent[]>(runId ? `/timeline?run_id=${encodeURIComponent(runId)}` : '/timeline')
-export const fetchState = () => call<BusinessState>('/state')
-export const runPolicyBench = () => call<BenchResult>('/policy-test', { method: 'POST' })
-export const resetDemo = () => call<{ status: string }>('/reset', { method: 'POST' })
-export const evaluateAction = (payload: EvaluationRequest) =>
-  call<EvaluationResponse>('/gate/evaluate', { method: 'POST', body: JSON.stringify(payload) })
-export const fetchPolicies = () => call<PolicyDefinition[]>('/policies')
-export const createPolicy = (payload: Omit<PolicyDefinition, 'id' | 'active'>) =>
-  call<PolicyDefinition>('/policies', { method: 'POST', body: JSON.stringify(payload) })
-export const activatePolicy = (id: string) =>
-  call<PolicyDefinition>(`/policies/${encodeURIComponent(id)}/activate`, { method: 'POST' })
-export const draftPolicy = (description: string) =>
-  call<PolicyDraft>('/policies/draft', { method: 'POST', body: JSON.stringify({ description }) })
+export const decidePending = (
+  pendingId: string,
+  decision: 'approve' | 'deny',
+  version: number,
+) =>
+  call<Outcome>(
+    `/pending/${encodeURIComponent(
+      pendingId,
+    )}`,
+    {
+      method: 'POST',
+
+      body: JSON.stringify({
+        decision,
+        version,
+      }),
+    },
+  )
+
+export const fetchPending = () =>
+  call<Pending[]>(
+    '/pending',
+  )
+
+export const fetchTimeline = (
+  runId?: string,
+) =>
+  call<TimelineEvent[]>(
+    runId
+      ? `/timeline?run_id=${encodeURIComponent(
+          runId,
+        )}`
+      : '/timeline',
+  )
+
+export const fetchState = () =>
+  call<BusinessState>(
+    '/state',
+  )
+
+export const runPolicyBench = () =>
+  call<BenchResult>(
+    '/policy-test',
+    {
+      method: 'POST',
+    },
+  )
+
+export const resetDemo = () =>
+  call<{
+    status: string
+  }>(
+    '/reset',
+    {
+      method: 'POST',
+    },
+  )
+
+export const evaluateAction = (
+  payload: EvaluationRequest,
+) =>
+  call<EvaluationResponse>(
+    '/gate/evaluate',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
+
+export const fetchPolicies = () =>
+  call<PolicyDefinition[]>(
+    '/policies',
+  )
+
+export type CreatePolicyPayload =
+  Omit<
+    PolicyDefinition,
+    'id' | 'active'
+  >
+
+export const createPolicy = (
+  payload: CreatePolicyPayload,
+) =>
+  call<PolicyDefinition>(
+    '/policies',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
+
+export const activatePolicy = (
+  id: string,
+) =>
+  call<PolicyDefinition>(
+    `/policies/${encodeURIComponent(
+      id,
+    )}/activate`,
+    {
+      method: 'POST',
+    },
+  )
+
+export const deletePolicy = (
+  id: string,
+) =>
+  call<void>(
+    `/policies/${encodeURIComponent(
+      id,
+    )}`,
+    {
+      method: 'DELETE',
+    },
+  )
+
+export const draftPolicy = (
+  description: string,
+) =>
+  call<PolicyDraft>(
+    '/policies/draft',
+    {
+      method: 'POST',
+
+      body: JSON.stringify({
+        description,
+      }),
+    },
+  )
