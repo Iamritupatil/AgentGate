@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://agentgate-backend.example.com/api/:path*"
+      "destination": "http://35.172.195.221:8000/api/:path*"
     },
     {
       "source": "/(.*)",
